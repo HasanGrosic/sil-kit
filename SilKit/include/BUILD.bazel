@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+# SilKitInterface: public header-only interface library.
+# Matches CMake: add_library(SilKitInterface INTERFACE) in SilKit/include/CMakeLists.txt.
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "silkit_interface",
+    hdrs = glob([
+        "silkit/**/*.hpp",
+        "silkit/**/*.ipp",
+        "silkit/**/*.h",
+    ]),
+    includes = ["."],
+    # No sources, no deps -- pure public header interface
+)

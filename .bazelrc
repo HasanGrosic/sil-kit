@@ -1,0 +1,152 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+# ============================================================================
+# SIL Kit Bazel Build Configuration
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# JVM / SSL settings (required for BCR access on this host)
+# ---------------------------------------------------------------------------
+startup --server_javabase=/usr/lib/jvm/java-21-openjdk-amd64 \
+        --host_jvm_args=-Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts \
+        --host_jvm_args=-Djavax.net.ssl.trustStorePassword=changeit
+
+# ---------------------------------------------------------------------------
+# Common settings
+# ---------------------------------------------------------------------------
+common --lockfile_mode=off
+common --enable_platform_specific_config
+
+# Suppress BUILD files shipped inside third-party submodules so that all
+# third-party targets are defined centrally in //ThirdParty/BUILD.bazel.
+common --deleted_packages=ThirdParty/googletest,ThirdParty/googletest/googletest/test,ThirdParty/googletest/googlemock/test,ThirdParty/fmt/support/bazel,ThirdParty/rapidyaml
+
+# ---------------------------------------------------------------------------
+# Build defaults
+# ---------------------------------------------------------------------------
+
+# C++ standard: SilKit requires C++17
+build --cxxopt=-std=c++17
+build --host_cxxopt=-std=c++17
+
+# Position-independent code (matches CMake: CMAKE_POSITION_INDEPENDENT_CODE=ON)
+build --copt=-fPIC
+
+# Symbol visibility (matches CMake: CMAKE_C_VISIBILITY_PRESET=hidden, etc.)
+build --copt=-fvisibility=hidden
+build --cxxopt=-fvisibility-inlines-hidden
+
+# ASIO visibility suppression (global, matches CMake add_compile_definitions)
+build --copt=-DASIO_DISABLE_VISIBILITY=1
+
+# ASIO standalone mode (header-only, no Boost)
+build --copt=-DASIO_STANDALONE=1
+
+# Warning flags (matches silkit_enable_warnings for GCC/Clang)
+build --copt=-pedantic
+build --copt=-Wall
+build --copt=-Wextra
+build --copt=-Wcast-align
+build --copt=-Wpacked
+build --copt=-Wno-implicit-fallthrough
+build --copt=-Wno-shadow
+build --copt=-Wno-format-nonliteral
+build --copt=-Wstrict-overflow=1
+
+# ---------------------------------------------------------------------------
+# Reproducible builds (matches SILKIT_BUILD_REPRODUCIBLE=ON)
+# ---------------------------------------------------------------------------
+build --action_env=SOURCE_DATE_EPOCH=0
+build --action_env=LC_ALL=C
+build --action_env=TZ=UTC
+
+# ---------------------------------------------------------------------------
+# Version stamping (git hash in version_macros.hpp)
+# ---------------------------------------------------------------------------
+build --workspace_status_command=bazel/print_workspace_status.sh
+
+# ---------------------------------------------------------------------------
+# Linux-specific
+# ---------------------------------------------------------------------------
+build:linux --copt=-pthread
+# Note: -lpthread is NOT set globally here; it is added via select() in
+# BUILD files that need it (silkit_core_vasio, SilKit shared lib).
+# This avoids link errors when cross-compiling for QNX from a Linux host,
+# since --enable_platform_specific_config applies build:linux based on
+# the HOST OS, not the target.
+
+# ---------------------------------------------------------------------------
+# Dashboard configuration
+# ---------------------------------------------------------------------------
+# Default: dashboard ON. Use --config=no_dashboard to disable.
+build --define dashboard=true
+build:no_dashboard --define dashboard=false
+
+# ---------------------------------------------------------------------------
+# Debug / Release configurations
+# ---------------------------------------------------------------------------
+build:debug --compilation_mode=dbg
+build:release --compilation_mode=opt
+build:relwithdebinfo --compilation_mode=opt --copt=-g
+
+# ---------------------------------------------------------------------------
+# Warnings-as-errors (matches SILKIT_WARNINGS_AS_ERRORS)
+# ---------------------------------------------------------------------------
+build:strict --copt=-Werror
+
+# ---------------------------------------------------------------------------
+# Sanitizers
+# ---------------------------------------------------------------------------
+build:asan --copt=-fsanitize=address --linkopt=-fsanitize=address
+build:asan --define dashboard=false
+
+build:ubsan --copt=-fsanitize=undefined --linkopt=-fsanitize=undefined
+build:ubsan --define dashboard=false
+
+build:tsan --copt=-fsanitize=thread --linkopt=-fsanitize=thread
+build:tsan --define dashboard=false
+
+# ---------------------------------------------------------------------------
+# QNX cross-compilation
+# ---------------------------------------------------------------------------
+build:qnx --define dashboard=false
+build:qnx --copt=-D_QNX_SOURCE
+build:qnx --copt=-DSA_RESTART=0
+build:qnx --copt=-DFD_SETSIZE=1000
+build:qnx --linkopt=-lsocket
+build:qnx --action_env=QNX_HOST
+build:qnx --action_env=QNX_TARGET
+build:qnx --action_env=QNX_CONFIGURATION
+build:qnx --action_env=QNX_CONFIGURATION_EXCLUSIVE
+build:qnx --action_env=MAKEFLAGS
+build:qnx --action_env=QCONF_OVERRIDE
+build:qnx --action_env=QNXLM_LICENSE_FILE
+build:qnx --action_env=HOME
+build:qnx --spawn_strategy=standalone
+build:qnx --incompatible_strict_action_env
+# QNX toolchains are registered via --extra_toolchains (not MODULE.bazel)
+# so that native Linux builds work without QNX_HOST being set.
+build:qnx --extra_toolchains=@qnx_cc_toolchain//:qcc_x86_64,@qnx_cc_toolchain//:qcc_aarch64le
+
+build:qnx_x86_64 --config=qnx
+build:qnx_x86_64 --platforms=@qnx_cc_toolchain//:qnx_x86_64
+
+build:qnx_aarch64 --config=qnx
+build:qnx_aarch64 --platforms=@qnx_cc_toolchain//:qnx_aarch64le
+
+build:qnx_armv7 --config=qnx
+
+# ---------------------------------------------------------------------------
+# MinGW
+# ---------------------------------------------------------------------------
+build:mingw --define dashboard=false
+build:mingw --copt=-Wa,-mbig-obj
+build:mingw --copt=-Wno-format
+build:mingw --copt=-Wno-unused-parameter
+
+# ---------------------------------------------------------------------------
+# Try-import user-local overrides
+# ---------------------------------------------------------------------------
+try-import %workspace%/user.bazelrc

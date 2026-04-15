@@ -1,0 +1,167 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("//bazel:cc_defs.bzl", "silkit_data_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# ---------------------------------------------------------------------------
+# Exported test data files (consumed by tests in other packages)
+# ---------------------------------------------------------------------------
+exports_files(
+    glob([
+        "ParticipantConfiguration_*.json",
+        "ParticipantConfiguration_*.yaml",
+        "TestParticipantConfigs/*.yaml",
+    ]),
+    visibility = ["//SilKit:__subpackages__"],
+)
+
+# I_SilKit_Config: configuration interface
+cc_library(
+    name = "silkit_config_interface",
+    hdrs = glob(["*.hpp"]),
+    includes = ["."],
+    deps = [
+        "//ThirdParty:rapidyaml",
+        "//SilKit/source/util:silkit_util_interface",
+    ],
+)
+
+# O_SilKit_Config: configuration implementation
+cc_library(
+    name = "silkit_config",
+    srcs = [
+        "Configuration.cpp",
+        "ParticipantConfiguration.cpp",
+        "ParticipantConfigurationFromXImpl.cpp",
+        "Validation.cpp",
+        "YamlParser.cpp",
+        "YamlParserUtils.cpp",
+        "YamlReader.cpp",
+        "YamlWriter.cpp",
+        "YamlValidator.cpp",
+    ],
+    deps = [
+        ":silkit_config_interface",
+        "//ThirdParty:rapidyaml",
+    ],
+    implementation_deps = [
+        "//SilKit/include:silkit_interface",
+        "//SilKit/source/util:silkit_util_filehelpers_interface",
+        "//SilKit/source/util:silkit_util_stringhelpers_interface",
+        "//ThirdParty:fmt",
+    ],
+    alwayslink = True,
+)
+
+# ===========================================================================
+# Config tests
+# ===========================================================================
+
+cc_test(
+    name = "Test_Validation",
+    srcs = ["Test_Validation.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = [
+        ":silkit_config",
+        "//SilKit/source:S_SilKitImpl",
+        "//SilKit/source:silkit_internal_headers",
+        "//SilKit/cmake/SilKitTest:silkit_test_main",
+        "//ThirdParty:gtest",
+    ],
+)
+
+cc_test(
+    name = "Test_YamlParser",
+    srcs = ["Test_YamlParser.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = [
+        ":silkit_config",
+        ":silkit_config_interface",
+        "//SilKit/source:S_SilKitImpl",
+        "//ThirdParty:rapidyaml",
+        "//SilKit/cmake/SilKitTest:silkit_test_main",
+        "//ThirdParty:gtest",
+    ],
+)
+
+silkit_data_test(
+    name = "Test_YamlValidator",
+    srcs = ["Test_YamlValidator.cpp"],
+    defines = ["UNIT_TEST"],
+    data_files = [
+        "ParticipantConfiguration_Full.json",
+        "ParticipantConfiguration_Full.yaml",
+    ],
+    deps = [
+        ":silkit_config",
+        ":silkit_config_interface",
+        "//SilKit/source:S_SilKitImpl",
+        "//ThirdParty:rapidyaml",
+        "//SilKit/cmake/SilKitTest:silkit_test_main",
+        "//ThirdParty:gtest",
+    ],
+)
+
+# ---------------------------------------------------------------------------
+# Test_ParticipantConfiguration: needs many config files flat in CWD plus
+# a ConfigSnippets/ subdirectory tree.
+# ---------------------------------------------------------------------------
+silkit_data_test(
+    name = "Test_ParticipantConfiguration",
+    srcs = ["Test_ParticipantConfiguration.cpp"],
+    defines = ["UNIT_TEST"],
+    data_files = [
+        # Root-level configs
+        "ParticipantConfiguration_Full.json",
+        "ParticipantConfiguration_Full.yaml",
+        "ParticipantConfiguration_Minimal.json",
+        "ParticipantConfiguration_Logging_Without_File.json",
+        # Flattened TestParticipantConfigs
+        "TestParticipantConfigs/ParticipantConfiguration_FullIncludes.yaml",
+        "TestParticipantConfigs/ParticipantConfiguration_FullIncludes_Reference.yaml",
+        "TestParticipantConfigs/ParticipantConfiguration_MultipleAcceptorUris.yaml",
+        "TestParticipantConfigs/ParticipantConfiguration_DuplicateControllerNames.yaml",
+        "TestParticipantConfigs/ParticipantConfiguration_FromString_Reference.yaml",
+        "TestParticipantConfigs/DuplicateEthernetControllerNames.yaml",
+        "TestParticipantConfigs/MultipleAcceptorUrisInclude.yaml",
+        "TestParticipantConfigs/ExtensionsIncludes.yaml",
+        "TestParticipantConfigs/LoggingIncludes.yaml",
+        "TestParticipantConfigs/CanIncludes.yaml",
+        "TestParticipantConfigs/CanInclude2.yaml",
+        "TestParticipantConfigs/CanInclude3.yaml",
+        "TestParticipantConfigs/CanInclude4.yaml",
+        "TestParticipantConfigs/CanInclude5.yaml",
+        "TestParticipantConfigs/CanInclude6.yaml",
+        "TestParticipantConfigs/MiddlewareInclude.yaml",
+        "TestParticipantConfigs/MoreMiddlewareIncludes.yaml",
+        "TestParticipantConfigs/AdditionalSubIncludes.yaml",
+    ],
+    subdir_data = {
+        "ConfigSnippets/CAN": [
+            "TestParticipantConfigs/CanIncludes.yaml",
+            "TestParticipantConfigs/CanInclude2.yaml",
+            "TestParticipantConfigs/CanInclude3.yaml",
+            "TestParticipantConfigs/CanInclude4.yaml",
+            "TestParticipantConfigs/CanInclude5.yaml",
+            "TestParticipantConfigs/CanInclude6.yaml",
+        ],
+        "ConfigSnippets/Middleware": [
+            "TestParticipantConfigs/MiddlewareInclude.yaml",
+            "TestParticipantConfigs/MoreMiddlewareIncludes.yaml",
+        ],
+    },
+    deps = [
+        ":silkit_config",
+        "//SilKit/source:S_SilKitImpl",
+        "//SilKit/source:silkit_mock_nullconnection",
+        "//SilKit/source:silkit_internal_headers",
+        "//SilKit/cmake/SilKitTest:silkit_test_main",
+        "//ThirdParty:gtest",
+    ],
+)

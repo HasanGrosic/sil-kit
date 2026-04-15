@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+# QNX cross-compilation support files.
+# The actual constraints, platforms, and toolchains are generated into the
+# @qnx_cc_toolchain repo by the module extension in extensions.bzl.
+
+exports_files([
+    "sdp.BUILD",
+])

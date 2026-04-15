@@ -1,0 +1,96 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# O_SilKit_Dashboard
+# When dashboard is enabled (default), builds the full dashboard with oatpp.
+# When disabled, builds the stub (DashboardUnavailable.cpp).
+cc_library(
+    name = "silkit_dashboard",
+    srcs = select({
+        "//bazel:dashboard_enabled": [
+            "client/DashboardSystemServiceClient.cpp",
+            "client/DashboardRetryPolicy.cpp",
+            "service/DashboardRestClient.cpp",
+            "service/SilKitToOatppMapper.cpp",
+            "OatppHeaders.cpp",
+            "DashboardInstance.cpp",
+            "CreateDashboardInstance.cpp",
+        ],
+        "//conditions:default": [
+            "DashboardUnavailable.cpp",
+        ],
+    }),
+    hdrs = glob(["*.hpp", "client/*.hpp", "dto/*.hpp", "service/*.hpp", "client/Mocks/*.hpp", "service/Mocks/*.hpp"]),
+    includes = [".", "client", "dto", "service"],
+    deps = [
+        "//SilKit/include:silkit_interface",
+        "//SilKit/source:silkit_internal_headers",
+        "//SilKit/source/util:silkit_util_interface",
+    ],
+    implementation_deps = select({
+        "//bazel:dashboard_enabled": [
+            "//ThirdParty:oatpp",
+        ],
+        "//conditions:default": [],
+    }),
+    linkopts = select({
+        "//bazel:is_qnx": [],  # QNX: pthreads are in libc
+        "//bazel:is_linux": ["-lpthread"],
+        "//conditions:default": [],
+    }),
+    alwayslink = True,
+)
+
+# ===========================================================================
+# Dashboard tests (only work with dashboard=true, the default)
+# ===========================================================================
+
+_DASHBOARD_TEST_DEPS = [
+    ":silkit_dashboard",
+    "//SilKit/source:S_SilKitImpl",
+    "//SilKit/source:silkit_internal_headers",
+    "//SilKit/cmake/SilKitTest:silkit_test_main",
+    "//ThirdParty:gtest",
+    "//ThirdParty:oatpp",
+]
+
+cc_test(
+    name = "Test_DashboardSilKitEventQueue",
+    srcs = ["Test_DashboardSilKitEventQueue.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _DASHBOARD_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_DashboardRestClient",
+    srcs = ["service/Test_DashboardRestClient.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _DASHBOARD_TEST_DEPS + [
+        "//SilKit/source:silkit_mock_participant",
+    ],
+)
+
+cc_test(
+    name = "Test_DashboardSilKitToOatppMapper",
+    srcs = ["service/Test_DashboardSilKitToOatppMapper.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _DASHBOARD_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_DashboardSystemServiceClient",
+    srcs = ["client/Test_DashboardSystemServiceClient.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _DASHBOARD_TEST_DEPS + [
+        "//SilKit/source:silkit_mock_participant",
+    ],
+)

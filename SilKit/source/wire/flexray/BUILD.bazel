@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+# FlexRay wire protocol interface library
+cc_library(
+    name = "silkit_wire_flexray_interface",
+    hdrs = ["WireFlexrayMessages.hpp"],
+    includes = ["."],
+    deps = [
+        "//SilKit/source/wire/util:silkit_wire_util_interface",
+    ],
+    visibility = ["//visibility:public"],
+)

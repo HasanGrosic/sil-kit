@@ -1,0 +1,119 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# ===========================================================================
+# S_Test_Hourglass: mock C API library for hourglass (C++ API over C API) tests
+# ===========================================================================
+
+cc_library(
+    name = "silkit_test_hourglass",
+    srcs = ["MockCapi.cpp"],
+    hdrs = [
+        "ByteVectorMatcher.hpp",
+        "MockCapi.hpp",
+        "MockCapiTest.hpp",
+    ],
+    includes = ["."],
+    local_defines = ["EXPORT_SilKitAPI"],
+    testonly = True,
+    deps = [
+        "//SilKit/include:silkit_interface",
+        "//ThirdParty:gtest",
+    ],
+)
+
+# ===========================================================================
+# Common test deps
+# ===========================================================================
+
+_HOURGLASS_TEST_DEPS = [
+    ":silkit_test_hourglass",
+    "//SilKit/cmake/SilKitTest:silkit_test_main_no_version",
+    "//ThirdParty:gtest",
+]
+
+# ===========================================================================
+# Hourglass tests
+# ===========================================================================
+
+cc_test(
+    name = "Test_HourglassParticipantLogger",
+    srcs = ["Test_HourglassParticipantLogger.cpp"],
+    linkstatic = True,
+    deps = _HOURGLASS_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_HourglassCan",
+    srcs = ["Test_HourglassCan.cpp"],
+    linkstatic = True,
+    deps = _HOURGLASS_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_HourglassEthernet",
+    srcs = ["Test_HourglassEthernet.cpp"],
+    linkstatic = True,
+    deps = _HOURGLASS_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_HourglassLin",
+    srcs = ["Test_HourglassLin.cpp"],
+    linkstatic = True,
+    deps = _HOURGLASS_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_HourglassFlexray",
+    srcs = ["Test_HourglassFlexray.cpp"],
+    linkstatic = True,
+    deps = _HOURGLASS_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_HourglassRpc",
+    srcs = ["Test_HourglassRpc.cpp"],
+    linkstatic = True,
+    deps = _HOURGLASS_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_HourglassPubSub",
+    srcs = ["Test_HourglassPubSub.cpp"],
+    linkstatic = True,
+    deps = _HOURGLASS_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_HourglassOrchestration",
+    srcs = ["Test_HourglassOrchestration.cpp"],
+    linkstatic = True,
+    deps = _HOURGLASS_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_HourglassVendor",
+    srcs = ["Test_HourglassVendor.cpp"],
+    linkstatic = True,
+    deps = _HOURGLASS_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_HourglassVersion",
+    srcs = ["Test_HourglassVersion.cpp"],
+    linkstatic = True,
+    deps = _HOURGLASS_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_HourglassNetSim",
+    srcs = ["Test_HourglassNetSim.cpp"],
+    linkstatic = True,
+    deps = _HOURGLASS_TEST_DEPS,
+)

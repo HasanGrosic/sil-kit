@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+# Root BUILD file for the SIL Kit Bazel build.
+# Config settings and top-level aliases live here.
+
+package(default_visibility = ["//visibility:public"])

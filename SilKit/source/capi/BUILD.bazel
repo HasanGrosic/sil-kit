@@ -1,0 +1,165 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("//bazel:cc_defs.bzl", "silkit_data_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# O_SilKit_Capi (no corresponding interface library)
+cc_library(
+    name = "silkit_capi",
+    srcs = glob(["*.cpp"], exclude = ["Test_*.cpp"]),
+    hdrs = glob(["*.hpp"]),
+    includes = ["."],
+    local_defines = ["EXPORT_SilKitAPI"],
+    deps = [
+        "//SilKit/include:silkit_interface",
+    ],
+    implementation_deps = [
+        "//SilKit/source:silkit_internal_headers",
+        "//SilKit/source/config:silkit_config_interface",
+        "//SilKit/source:silkit_createparticipantimpl_interface",
+        "//SilKit/source:silkit_createregistryimpl_interface",
+        "//SilKit/source:silkit_versionimpl_interface",
+    ],
+    alwayslink = True,
+)
+
+# ===========================================================================
+# Common test deps for capi tests
+# ===========================================================================
+
+_CAPI_TEST_DEPS = [
+    "//SilKit/source:S_SilKitImpl",
+    "//SilKit/source:silkit_internal_headers",
+    "//SilKit/cmake/SilKitTest:silkit_test_main",
+    "//ThirdParty:gtest",
+]
+
+# ===========================================================================
+# CAPI tests
+# ===========================================================================
+
+cc_test(
+    name = "Test_CapiInterfaces",
+    srcs = ["Test_CapiInterfaces.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_CapiCan",
+    srcs = ["Test_CapiCan.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS + ["//SilKit/source:silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_CapiEthernet",
+    srcs = ["Test_CapiEthernet.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS + ["//SilKit/source:silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_CapiFlexray",
+    srcs = ["Test_CapiFlexray.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS + ["//SilKit/source:silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_CapiData",
+    srcs = ["Test_CapiData.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS + ["//SilKit/source:silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_CapiRpc",
+    srcs = ["Test_CapiRpc.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS + ["//SilKit/source:silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_CapiLogger",
+    srcs = ["Test_CapiLogger.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_CapiVersion",
+    srcs = ["Test_CapiVersion.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS,
+)
+
+silkit_data_test(
+    name = "Test_CapiSilKit",
+    srcs = ["Test_CapiSilKit.cpp"],
+    defines = ["UNIT_TEST"],
+    data_files = [
+        "//SilKit/source/config:TestParticipantConfigs/ParticipantConfiguration_TestCapi.yaml",
+    ],
+    deps = _CAPI_TEST_DEPS + ["//SilKit/source:silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_CapiParticipantStateHandling",
+    srcs = ["Test_CapiParticipantStateHandling.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS + ["//SilKit/source:silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_CapiTimeSync",
+    srcs = ["Test_CapiTimeSync.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS + ["//SilKit/source:silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_CapiLin",
+    srcs = ["Test_CapiLin.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS + ["//SilKit/source:silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_CapiSymbols",
+    srcs = ["Test_CapiSymbols.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_CapiNetSim",
+    srcs = ["Test_CapiNetSim.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS + ["//SilKit/source:silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_CapiExceptions",
+    srcs = ["Test_CapiExceptions.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _CAPI_TEST_DEPS,
+)

@@ -1,0 +1,160 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+# ===========================================================================
+# ThirdParty Bazel overlay
+# ===========================================================================
+# All vendored/submodule third-party libraries are defined here so that
+# submodule directories are never modified.  Consumers reference these
+# targets as //ThirdParty:<name>.
+#
+# The submodule-shipped BUILD files (googletest, fmt) are suppressed via
+# --deleted_packages in .bazelrc.
+# ===========================================================================
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+# ---------------------------------------------------------------------------
+# asio  (header-only)
+# ---------------------------------------------------------------------------
+cc_library(
+    name = "asio",
+    hdrs = glob(["asio/asio/include/**/*.hpp", "asio/asio/include/**/*.ipp"]),
+    includes = ["asio/asio/include"],
+)
+
+# ---------------------------------------------------------------------------
+# fmt  (header-only in this project)
+# ---------------------------------------------------------------------------
+cc_library(
+    name = "fmt",
+    hdrs = glob(["fmt/include/fmt/*.h"]),
+    defines = ["FMT_HEADER_ONLY"],
+    includes = ["fmt/include"],
+)
+
+# ---------------------------------------------------------------------------
+# spdlog  (static library, uses external fmt via FMT_HEADER_ONLY)
+# ---------------------------------------------------------------------------
+cc_library(
+    name = "spdlog",
+    srcs = [
+        "spdlog/src/async.cpp",
+        "spdlog/src/cfg.cpp",
+        "spdlog/src/color_sinks.cpp",
+        "spdlog/src/file_sinks.cpp",
+        "spdlog/src/spdlog.cpp",
+        "spdlog/src/stdout_sinks.cpp",
+    ],
+    hdrs = glob(["spdlog/include/**/*.h"]),
+    defines = [
+        "SPDLOG_COMPILED_LIB",
+        "SPDLOG_FMT_EXTERNAL",
+    ],
+    includes = ["spdlog/include"],
+    linkopts = select({
+        "//bazel:is_qnx": [],  # QNX: pthreads are in libc
+        "//bazel:is_linux": ["-lpthread"],
+        "//conditions:default": [],
+    }),
+    deps = [":fmt"],
+)
+
+# ---------------------------------------------------------------------------
+# rapidyaml  (single amalgamated file)
+# ---------------------------------------------------------------------------
+cc_library(
+    name = "rapidyaml",
+    srcs = ["rapidyaml/rapidyaml-0.9.0.cpp"],
+    hdrs = ["rapidyaml/rapidyaml.hpp"],
+    defines = ["RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=1"],
+    includes = ["rapidyaml"],
+)
+
+# ---------------------------------------------------------------------------
+# oatpp  (static library, dashboard-only)
+# ---------------------------------------------------------------------------
+cc_library(
+    name = "oatpp",
+    srcs = glob(["oatpp/src/oatpp/**/*.cpp"]),
+    hdrs = glob(["oatpp/src/oatpp/**/*.hpp"]),
+    includes = ["oatpp/src"],
+    linkopts = select({
+        "//bazel:is_qnx": [],  # QNX: pthreads are in libc
+        "//bazel:is_linux": ["-lpthread"],
+        "//conditions:default": [],
+    }),
+)
+
+# ---------------------------------------------------------------------------
+# googletest + googlemock  (static, test-only)
+# ---------------------------------------------------------------------------
+# QNX config_setting: our QNX platform model uses @platforms//os:linux +
+# @qnx_cc_toolchain//:qnx (not @platforms//os:qnx).
+config_setting(
+    name = "qnx",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@qnx_cc_toolchain//:qnx",
+    ],
+)
+
+config_setting(
+    name = "windows",
+    constraint_values = ["@platforms//os:windows"],
+)
+
+config_setting(
+    name = "freebsd",
+    constraint_values = ["@platforms//os:freebsd"],
+)
+
+config_setting(
+    name = "openbsd",
+    constraint_values = ["@platforms//os:openbsd"],
+)
+
+cc_library(
+    name = "gtest",
+    testonly = True,
+    srcs = glob(
+        include = [
+            "googletest/googletest/src/*.cc",
+            "googletest/googletest/src/*.h",
+            "googletest/googletest/include/gtest/**/*.h",
+            "googletest/googlemock/src/*.cc",
+            "googletest/googlemock/include/gmock/**/*.h",
+        ],
+        exclude = [
+            "googletest/googletest/src/gtest-all.cc",
+            "googletest/googletest/src/gtest_main.cc",
+            "googletest/googlemock/src/gmock-all.cc",
+            "googletest/googlemock/src/gmock_main.cc",
+        ],
+    ),
+    hdrs = glob([
+        "googletest/googletest/include/gtest/*.h",
+        "googletest/googlemock/include/gmock/*.h",
+    ]),
+    copts = select({
+        ":qnx": [],
+        ":windows": [],
+        "//conditions:default": ["-pthread"],
+    }),
+    includes = [
+        "googletest/googlemock",
+        "googletest/googlemock/include",
+        "googletest/googletest",
+        "googletest/googletest/include",
+    ],
+    linkopts = select({
+        ":qnx": ["-lregex"],
+        ":windows": [],
+        ":freebsd": ["-lm", "-pthread"],
+        ":openbsd": ["-lm", "-pthread"],
+        "//conditions:default": ["-pthread"],
+    }),
+)

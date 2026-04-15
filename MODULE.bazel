@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+module(
+    name = "sil_kit",
+    version = "5.0.5",
+)
+
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "platforms", version = "0.0.11")
+
+# ---------------------------------------------------------------------------
+# QNX cross-compilation toolchain (self-contained, no external module deps)
+# ---------------------------------------------------------------------------
+# The extension creates @qnx_sdp and @qnx_cc_toolchain repos.
+# When QNX_HOST is not set, lightweight stubs are generated so that
+# config_setting / select / platform labels still resolve on any host.
+# Functional QNX builds require QNX_HOST to point to the SDP host dir.
+qnx_ext = use_extension("//bazel/qnx:extensions.bzl", "qnx_toolchain_ext")
+use_repo(qnx_ext, "qnx_sdp", "qnx_cc_toolchain")

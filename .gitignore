@@ -31,3 +31,6 @@ CMakeUserPresets.json
 
 #ignore vim swap files
 *.swp
+
+# ignore bazel build files
+bazel-*

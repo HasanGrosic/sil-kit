@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+# ===========================================================================
+# sil-kit-monitor
+# ---------------------------------------------------------------------------
+# Dynamically links against libSilKit.so (matching CMake).
+# C++14 in CMake, but C++17 is a strict superset and is set globally in
+# .bazelrc.
+# ===========================================================================
+
+cc_binary(
+    name = "sil-kit-monitor",
+    srcs = ["PassiveSystemMonitor.cpp"],
+    linkopts = select({
+        "//bazel:is_linux": ["-Wl,--strip-all"],
+        "//conditions:default": [],
+    }),
+    deps = [
+        "//SilKit/source:SilKit_dynamic",
+        "//SilKit/source/util:silkit_util_interface",
+        "//SilKit/source/util:silkit_util_signalhandler",
+    ],
+)

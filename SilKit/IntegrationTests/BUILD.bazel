@@ -1,0 +1,458 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# ===========================================================================
+# ITest_Utils: shared integration test utility headers
+# ===========================================================================
+
+cc_library(
+    name = "itest_utils",
+    hdrs = [
+        "EthernetHelpers.hpp",
+        "GetTestPid.hpp",
+        "ITestFixture.hpp",
+        "ITestThreadSafeLogger.hpp",
+        "ITest_NetSim.hpp",
+        "IntegrationTestUtils.hpp",
+    ],
+    includes = ["."],
+    testonly = True,
+    deps = [
+        "//SilKit/include:silkit_interface",
+        "//SilKit/IntegrationTests/SimTestHarness:silkit_sim_test_harness",
+        "//ThirdParty:gtest",
+    ],
+)
+
+# Internal-API variant of the shared test utilities (adds headers that need
+# internal SilKit symbols + SILKIT_LEGACY_CPP_API=1).
+cc_library(
+    name = "itest_utils_internals",
+    hdrs = [
+        "EthernetHelpers.hpp",
+        "GetTestPid.hpp",
+        "ITestFixture.hpp",
+        "ITestThreadSafeLogger.hpp",
+        "ITest_Internals_DataPubSub.hpp",
+        "ITest_Internals_Rpc.hpp",
+        "ITest_MultiThreadedParticipants.hpp",
+        "ITest_NetSim.hpp",
+        "IntegrationTestInfrastructure.hpp",
+        "IntegrationTestUtils.hpp",
+        "InternalHelpers.hpp",
+    ],
+    includes = ["."],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    testonly = True,
+    deps = [
+        "//SilKit/include:silkit_interface",
+        "//SilKit/IntegrationTests/SimTestHarness:silkit_sim_test_harness_internals",
+        "//SilKit/source:silkit_internal_headers",
+        "//SilKit/source/config:silkit_config_interface",
+        "//SilKit/source/util:silkit_util_interface",
+        "//ThirdParty:gtest",
+    ],
+)
+
+# ===========================================================================
+# Common deps
+# ===========================================================================
+
+_ITEST_PUBLIC_DEPS = [
+    ":itest_utils",
+    "//SilKit/source:S_SilKitImpl",
+    "//SilKit/IntegrationTests/SimTestHarness:silkit_sim_test_harness",
+    "//SilKit/cmake/SilKitTest:silkit_test_main",
+    "//ThirdParty:gtest",
+]
+
+_ITEST_INTERNAL_DEPS = [
+    ":itest_utils_internals",
+    "//SilKit/source:S_SilKitImpl",
+    "//SilKit/source:silkit_internal_headers",
+    "//SilKit/source/config:silkit_config_interface",
+    "//SilKit/IntegrationTests/SimTestHarness:silkit_sim_test_harness_internals",
+    "//SilKit/cmake/SilKitTest:silkit_test_main",
+    "//ThirdParty:gtest",
+]
+
+# ===========================================================================
+# Public-API integration tests (SilKitIntegrationTests)
+# ===========================================================================
+
+cc_test(
+    name = "ITest_CatchExceptionsInCallbacks",
+    srcs = ["ITest_CatchExceptionsInCallbacks.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_CommunicationGuarantees",
+    srcs = ["ITest_CommunicationGuarantees.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_LabelsMatching",
+    srcs = ["ITest_LabelsMatching.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_StateMachineVAsio",
+    srcs = ["ITest_StateMachineVAsio.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_DeterministicSimVAsio",
+    srcs = ["ITest_DeterministicSimVAsio.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_DifferentPeriods",
+    srcs = ["ITest_DifferentPeriods.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_SingleParticipant",
+    srcs = ["ITest_SingleParticipant.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_SameParticipants",
+    srcs = ["ITest_SameParticipants.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_AsyncSimTask",
+    srcs = ["ITest_AsyncSimTask.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_SimTask",
+    srcs = ["ITest_SimTask.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_ThreeCanController",
+    srcs = ["ITest_ThreeCanController.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_ThreeEthController",
+    srcs = ["ITest_ThreeEthController.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_Lin",
+    srcs = ["ITest_Lin.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_LinDynamicResponse",
+    srcs = ["ITest_LinDynamicResponse.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_PubHistory",
+    srcs = ["ITest_PubHistory.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_NetSimCan",
+    srcs = ["ITest_NetSimCan.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_NetSimEthernet",
+    srcs = ["ITest_NetSimEthernet.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_NetSimLin",
+    srcs = ["ITest_NetSimLin.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_NetSimFlexRay",
+    srcs = ["ITest_NetSimFlexRay.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_CanDemo",
+    srcs = ["ITest_CanDemo.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_EthernetDemo",
+    srcs = ["ITest_EthernetDemo.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_LinDemo",
+    srcs = ["ITest_LinDemo.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_Orchestration",
+    srcs = ["ITest_Orchestration.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_MessageAggregation",
+    srcs = ["ITest_MessageAggregation.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_RequestRemoteParticipantConnect",
+    srcs = ["ITest_RequestRemoteParticipantConnect.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_MultiSim",
+    srcs = ["ITest_MultiSim.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "ITest_Config",
+    srcs = ["ITest_Config.cpp"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+# ===========================================================================
+# Internal-API integration tests (SilKitInternalIntegrationTests)
+# ===========================================================================
+
+cc_test(
+    name = "ITest_HopOnHopOff",
+    srcs = ["ITest_HopOnHopOff.cpp"],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_INTERNAL_DEPS,
+)
+
+cc_test(
+    name = "ITest_Abort",
+    srcs = ["ITest_Abort.cpp"],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_INTERNAL_DEPS,
+)
+
+cc_test(
+    name = "ITest_Internals_ParticipantModes",
+    srcs = ["ITest_Internals_ParticipantModes.cpp"],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_INTERNAL_DEPS,
+)
+
+cc_test(
+    name = "ITest_Internals_DataPubSub",
+    srcs = ["ITest_Internals_DataPubSub.cpp"],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_INTERNAL_DEPS,
+)
+
+cc_test(
+    name = "ITest_Internals_TargetedMessaging",
+    srcs = ["ITest_Internals_TargetedMessaging.cpp"],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_INTERNAL_DEPS,
+)
+
+cc_test(
+    name = "ITest_Internals_ServiceDiscovery",
+    srcs = ["ITest_Internals_ServiceDiscovery.cpp"],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_INTERNAL_DEPS,
+)
+
+cc_test(
+    name = "ITest_Internals_RequestReply",
+    srcs = ["ITest_Internals_RequestReply.cpp"],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_INTERNAL_DEPS,
+)
+
+cc_test(
+    name = "ITest_Internals_Rpc",
+    srcs = [
+        "ITest_Internals_Rpc.cpp",
+        "ITest_Internals_Rpc.hpp",
+    ],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_INTERNAL_DEPS,
+)
+
+cc_test(
+    name = "ITest_SystemMonitor",
+    srcs = ["ITest_SystemMonitor.cpp"],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    linkstatic = True,
+    size = "medium",
+    deps = _ITEST_INTERNAL_DEPS,
+)
+
+# ===========================================================================
+# Functional/Performance tests (not run in CI, tagged manual)
+# ===========================================================================
+
+cc_test(
+    name = "FTest_PubSubPerf",
+    srcs = ["FTest_PubSubPerf.cpp"],
+    linkstatic = True,
+    size = "large",
+    tags = ["manual"],
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "FTest_WallClockCoupling",
+    srcs = ["FTest_WallClockCoupling.cpp"],
+    linkstatic = True,
+    size = "large",
+    tags = ["manual"],
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "FTest_VendorVectorRegistry",
+    srcs = ["FTest_VendorVectorRegistry.cpp"],
+    linkstatic = True,
+    size = "large",
+    tags = ["manual"],
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "FTest_CanWithoutSync",
+    srcs = ["FTest_CanWithoutSync.cpp"],
+    linkstatic = True,
+    size = "large",
+    tags = ["manual"],
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "FTest_CanControllerThreadSafety",
+    srcs = ["FTest_CanControllerThreadSafety.cpp"],
+    linkstatic = True,
+    size = "large",
+    tags = ["manual"],
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "FTest_EthWithoutSync",
+    srcs = ["FTest_EthWithoutSync.cpp"],
+    linkstatic = True,
+    size = "large",
+    tags = ["manual"],
+    deps = _ITEST_PUBLIC_DEPS,
+)
+
+cc_test(
+    name = "FTest_ServiceDiscoveryPerf",
+    srcs = ["FTest_ServiceDiscoveryPerf.cpp"],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    linkstatic = True,
+    size = "large",
+    tags = ["manual"],
+    deps = _ITEST_INTERNAL_DEPS,
+)

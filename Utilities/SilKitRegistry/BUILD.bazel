@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+# ===========================================================================
+# sil-kit-registry
+# ---------------------------------------------------------------------------
+# Statically links S_SilKitImpl (like CMake).  C++17.
+# ===========================================================================
+
+cc_binary(
+    name = "sil-kit-registry",
+    srcs = [
+        "Registry.cpp",
+        "Registry.hpp",
+        "WindowsServiceMain.cpp",
+        "WindowsServiceMain.hpp",
+    ],
+    local_defines = ["EXPORT_SilKitAPI"],
+    linkopts = select({
+        "//bazel:is_linux": ["-Wl,--strip-all"],
+        "//conditions:default": [],
+    }),
+    deps = [
+        # Static aggregate of all SilKit implementation
+        "//SilKit/source:S_SilKitImpl",
+        # Internal headers (transitive through S_SilKitImpl, but explicit
+        # here because Registry.cpp includes internal headers directly)
+        "//SilKit/source:silkit_internal_headers",
+        # Dashboard
+        "//SilKit/source/dashboard:silkit_dashboard",
+        # Registry-specific config parsing
+        "//Utilities/SilKitRegistry/config:silkitregistry_config",
+        # Utility headers / implementations used directly
+        "//SilKit/source/util:silkit_util_interface",
+        "//SilKit/source/util:silkit_util_signalhandler",
+        "//SilKit/source/util:silkit_util_stringhelpers_interface",
+        "//SilKit/source/util:silkit_util_filehelpers_interface",
+        # Root-level interfaces included directly by Registry.cpp
+        "//SilKit/source:silkit_createregistryimpl_interface",
+        "//SilKit/source:silkit_createparticipantimpl_interface",
+    ],
+)

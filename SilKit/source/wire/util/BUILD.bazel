@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+# Wire protocol utilities interface library
+cc_library(
+    name = "silkit_wire_util_interface",
+    hdrs = ["SharedVector.hpp"],
+    includes = ["."],
+    visibility = ["//visibility:public"],
+)

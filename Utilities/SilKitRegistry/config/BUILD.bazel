@@ -1,0 +1,55 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//bazel:cc_defs.bzl", "silkit_data_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# --- I_SilKitRegistry_Config ---
+cc_library(
+    name = "silkitregistry_config_interface",
+    hdrs = ["RegistryConfiguration.hpp"],
+    includes = ["."],
+    deps = [
+        "//SilKit/include:silkit_interface",
+        "//SilKit/source/config:silkit_config_interface",
+    ],
+)
+
+# --- O_SilKitRegistry_Config ---
+cc_library(
+    name = "silkitregistry_config",
+    srcs = ["RegistryConfiguration.cpp"],
+    deps = [
+        ":silkitregistry_config_interface",
+        "//SilKit/source/config:silkit_config",
+        "//SilKit/source/config:silkit_config_interface",
+        "//ThirdParty:fmt",
+    ],
+    implementation_deps = [
+        "//ThirdParty:rapidyaml",
+    ],
+    alwayslink = True,
+)
+
+# --- Test_RegistryConfiguration ---
+silkit_data_test(
+    name = "Test_RegistryConfiguration",
+    srcs = ["Test_RegistryConfiguration.cpp"],
+    defines = ["UNIT_TEST", "EXPORT_SilKitAPI"],
+    data_files = [
+        "Test_RegistryConfiguration_Full.json",
+        "Test_RegistryConfiguration_Full.yaml",
+    ],
+    deps = [
+        ":silkitregistry_config",
+        ":silkitregistry_config_interface",
+        "//SilKit/source:S_SilKitImpl",
+        "//SilKit/source/config:silkit_config",
+        "//SilKit/source/util:silkit_util_filehelpers_interface",
+        "//SilKit/cmake/SilKitTest:silkit_test_main",
+        "//ThirdParty:gtest",
+    ],
+)

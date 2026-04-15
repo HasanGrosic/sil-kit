@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//SilKit:__subpackages__"])
+
+# ===========================================================================
+# S_ITests_STH: SimTestHarness (public API variant)
+# ===========================================================================
+# Links S_SilKitImpl (statically) -- in CMake this links the SilKit shared lib,
+# but for Bazel test executables static linking is used throughout.
+
+cc_library(
+    name = "silkit_sim_test_harness",
+    srcs = ["SimTestHarness.cpp"],
+    hdrs = [
+        "SimSystemController.hpp",
+        "SimTestHarness.hpp",
+    ],
+    includes = ["."],
+    testonly = True,
+    deps = [
+        "//SilKit/include:silkit_interface",
+        "//SilKit/source:S_SilKitImpl",
+    ],
+)
+
+# ===========================================================================
+# S_ITests_STH_Internals: SimTestHarness (internal API variant)
+# ===========================================================================
+# Same sources, but propagates SILKIT_LEGACY_CPP_API=1 to dependents so they
+# can access internal symbols without the C API hourglass layer.
+
+cc_library(
+    name = "silkit_sim_test_harness_internals",
+    srcs = ["SimTestHarness.cpp"],
+    hdrs = [
+        "SimSystemController.hpp",
+        "SimTestHarness.hpp",
+    ],
+    includes = ["."],
+    defines = ["SILKIT_LEGACY_CPP_API=1"],
+    testonly = True,
+    deps = [
+        "//SilKit/include:silkit_interface",
+        "//SilKit/source:S_SilKitImpl",
+    ],
+)

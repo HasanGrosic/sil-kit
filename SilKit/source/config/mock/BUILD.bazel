@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+# Configuration test utilities interface library
+cc_library(
+    name = "silkit_config_testutils_interface",
+    hdrs = ["ConfigurationTestUtils.hpp"],
+    deps = [
+        "//SilKit/source/config:silkit_config_interface",
+    ],
+    visibility = ["//visibility:public"],
+)

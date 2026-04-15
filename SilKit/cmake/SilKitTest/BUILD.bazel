@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+# Custom test main for SIL Kit unit tests.
+# Initializes GoogleMock and prints the SIL Kit version before running tests.
+# Links to S_SilKitImpl transitively for SilKit::Version::String()/GitHash().
+cc_library(
+    name = "silkit_test_main",
+    srcs = ["SilKitTestMain.cpp"],
+    defines = ["UNIT_TEST"],
+    deps = [
+        "//SilKit/include:silkit_interface",
+        "//ThirdParty:gtest",
+    ],
+    testonly = True,
+    alwayslink = True,
+)
+
+# Variant that does not print the SIL Kit version.
+# Used by tests that do not link S_SilKitImpl (e.g. Hourglass tests).
+cc_library(
+    name = "silkit_test_main_no_version",
+    srcs = ["SilKitTestMain.cpp"],
+    defines = ["UNIT_TEST", "SIL_KIT_TEST_MAIN_DO_NOT_PRINT_VERSION"],
+    deps = [
+        "//SilKit/include:silkit_interface",
+        "//ThirdParty:gtest",
+    ],
+    testonly = True,
+    alwayslink = True,
+)

@@ -1,0 +1,235 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# I_SilKit_Util: base utility interface
+cc_library(
+    name = "silkit_util_interface",
+    hdrs = glob(["*.hpp", "tuple_tools/*.hpp"]),
+    includes = ["."],
+)
+
+# O_SilKit_Util: base utility implementation
+cc_library(
+    name = "silkit_util",
+    srcs = ["ExecutionEnvironment.cpp"],
+    deps = [":silkit_util_interface"],
+    implementation_deps = [
+        "//SilKit/include:silkit_interface",
+        ":silkit_util_filehelpers_interface",
+        "//ThirdParty:asio",
+        "//ThirdParty:fmt",
+    ],
+    alwayslink = True,
+)
+
+# I_SilKit_Util_FileHelpers
+cc_library(
+    name = "silkit_util_filehelpers_interface",
+    hdrs = ["FileHelpers.hpp"],
+    includes = ["."],
+    deps = ["//SilKit/include:silkit_interface"],
+)
+
+# O_SilKit_Util_FileHelpers
+cc_library(
+    name = "silkit_util_filehelpers",
+    srcs = ["FileHelpers.cpp"],
+    deps = [":silkit_util_filehelpers_interface"],
+    alwayslink = True,
+)
+
+# I_SilKit_Util_StringHelpers
+cc_library(
+    name = "silkit_util_stringhelpers_interface",
+    hdrs = ["StringHelpers.hpp"],
+    includes = ["."],
+    deps = ["//SilKit/include:silkit_interface"],
+)
+
+# O_SilKit_Util_StringHelpers
+cc_library(
+    name = "silkit_util_stringhelpers",
+    srcs = ["StringHelpers.cpp"],
+    deps = [":silkit_util_stringhelpers_interface"],
+    implementation_deps = ["//ThirdParty:fmt"],
+    alwayslink = True,
+)
+
+# I_SilKit_Util_SetThreadName
+cc_library(
+    name = "silkit_util_setthreadname_interface",
+    hdrs = ["SetThreadName.hpp"],
+    includes = ["."],
+    deps = ["//SilKit/include:silkit_interface"],
+)
+
+# O_SilKit_Util_SetThreadName
+cc_library(
+    name = "silkit_util_setthreadname",
+    srcs = ["SetThreadName.cpp"],
+    deps = [
+        ":silkit_util_setthreadname_interface",
+        ":silkit_util_interface",
+    ],
+    alwayslink = True,
+)
+
+# I_SilKit_Util_SignalHandler
+cc_library(
+    name = "silkit_util_signalhandler_interface",
+    hdrs = ["SignalHandler.hpp"],
+    includes = ["."],
+    deps = ["//SilKit/include:silkit_interface"],
+)
+
+# O_SilKit_Util_SignalHandler
+cc_library(
+    name = "silkit_util_signalhandler",
+    srcs = ["SignalHandler.cpp"],
+    deps = [":silkit_util_signalhandler_interface"],
+    alwayslink = True,
+)
+
+# I_SilKit_Util_Uuid
+cc_library(
+    name = "silkit_util_uuid_interface",
+    hdrs = ["Uuid.hpp"],
+    includes = ["."],
+)
+
+# O_SilKit_Util_Uuid
+cc_library(
+    name = "silkit_util_uuid",
+    srcs = ["Uuid.cpp"],
+    deps = [":silkit_util_uuid_interface"],
+    alwayslink = True,
+)
+
+# I_SilKit_Util_Uri
+cc_library(
+    name = "silkit_util_uri_interface",
+    hdrs = ["Uri.hpp"],
+    includes = ["."],
+    deps = ["//SilKit/include:silkit_interface"],
+)
+
+# O_SilKit_Util_Uri
+cc_library(
+    name = "silkit_util_uri",
+    srcs = ["Uri.cpp"],
+    deps = [":silkit_util_uri_interface"],
+    implementation_deps = ["//ThirdParty:fmt"],
+    alwayslink = True,
+)
+
+# I_SilKit_Util_LabelMatching
+cc_library(
+    name = "silkit_util_labelmatching_interface",
+    hdrs = ["LabelMatching.hpp"],
+    includes = ["."],
+    deps = ["//SilKit/include:silkit_interface"],
+)
+
+# O_SilKit_Util_LabelMatching
+cc_library(
+    name = "silkit_util_labelmatching",
+    srcs = ["LabelMatching.cpp"],
+    deps = [":silkit_util_labelmatching_interface"],
+    alwayslink = True,
+)
+
+# ===========================================================================
+# Unit tests
+# ===========================================================================
+
+_UTIL_TEST_DEPS = [
+    "//SilKit/source:S_SilKitImpl",
+    "//SilKit/source:silkit_internal_headers",
+    "//SilKit/cmake/SilKitTest:silkit_test_main",
+    "//ThirdParty:gtest",
+]
+
+cc_test(
+    name = "Test_Uri",
+    srcs = ["tests/Test_Uri.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _UTIL_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_Span",
+    srcs = ["tests/Test_Span.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _UTIL_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_CommandlineParser",
+    srcs = ["tests/Test_CommandlineParser.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _UTIL_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_SynchronizedHandlers",
+    srcs = ["tests/Test_SynchronizedHandlers.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _UTIL_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_Timer",
+    srcs = ["tests/Test_Timer.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _UTIL_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_LabelMatching",
+    srcs = ["Test_LabelMatching.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _UTIL_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_Util_FileHelpers",
+    srcs = ["tests/Test_Util_FileHelpers.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _UTIL_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_Util_StringHelpers",
+    srcs = ["tests/Test_Util_StringHelpers.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _UTIL_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_SilSerDes",
+    srcs = ["tests/Test_SilSerDes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _UTIL_TEST_DEPS,
+)
+
+cc_test(
+    name = "Test_SilSerializer",
+    srcs = ["tests/Test_SilSerializer.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _UTIL_TEST_DEPS,
+)

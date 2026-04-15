@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+# Bazel helper package: config settings, macros, and platform definitions.
+
+package(default_visibility = ["//visibility:public"])
+
+# ---------------------------------------------------------------------------
+# Dashboard toggle
+# ---------------------------------------------------------------------------
+# Usage: --define dashboard=true (default) or --define dashboard=false
+config_setting(
+    name = "dashboard_enabled",
+    define_values = {"dashboard": "true"},
+)
+
+config_setting(
+    name = "dashboard_disabled",
+    define_values = {"dashboard": "false"},
+)
+
+# ---------------------------------------------------------------------------
+# OS config settings (convenience aliases)
+# ---------------------------------------------------------------------------
+config_setting(
+    name = "is_linux",
+    constraint_values = ["@platforms//os:linux"],
+)
+
+config_setting(
+    name = "is_windows",
+    constraint_values = ["@platforms//os:windows"],
+)
+
+config_setting(
+    name = "is_macos",
+    constraint_values = ["@platforms//os:macos"],
+)
+
+# is_qnx intentionally includes @platforms//os:linux so that it is a strict
+# superset of is_linux's constraints.  This lets Bazel's select() specialisation
+# prefer is_qnx over is_linux when building for QNX targets (whose platforms
+# carry both @platforms//os:linux and @qnx_cc_toolchain//:qnx).
+config_setting(
+    name = "is_qnx",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@qnx_cc_toolchain//:qnx",
+    ],
+)
+
+# ---------------------------------------------------------------------------
+# Data-file test wrapper
+# ---------------------------------------------------------------------------
+exports_files(["run_with_data.sh"])
+
+# ---------------------------------------------------------------------------
+# Functional smoke test  (M9 – Binary Parity Verification)
+# ---------------------------------------------------------------------------
+# Verifies that the Bazel-built libSilKit.so and sil-kit-registry are
+# functionally equivalent to the CMake-built artefacts:
+#   - SONAME, C API symbol exports, dynamic dependencies
+#   - Registry start / listen / shutdown
+#
+# Run:  bazel test //bazel:smoke_test
+# ---------------------------------------------------------------------------
+sh_test(
+    name = "smoke_test",
+    srcs = ["smoke_test.sh"],
+    args = [
+        "$(location //Utilities/SilKitRegistry:sil-kit-registry)",
+        "$(location //SilKit/source:SilKit)",
+    ],
+    data = [
+        "//Utilities/SilKitRegistry:sil-kit-registry",
+        "//SilKit/source:SilKit",
+    ],
+    size = "medium",
+    tags = ["smoke"],
+)

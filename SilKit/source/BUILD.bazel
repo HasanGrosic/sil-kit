@@ -1,0 +1,1304 @@
+# SPDX-FileCopyrightText: 2026 Vector Informatik GmbH
+#
+# SPDX-License-Identifier: MIT
+
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_import", "cc_library", "cc_test")
+load("//bazel:version_macros.bzl", "version_macros")
+
+package(default_visibility = ["//visibility:public"])
+
+# ===========================================================================
+# Unified internal headers
+# ---------------------------------------------------------------------------
+# The CMake build uses ~18 INTERFACE libraries (I_SilKit_Core_Internal,
+# I_SilKit_Services_Can, I_SilKit_Tracing, ...) that form cyclic include
+# dependencies.  Bazel forbids cyclic deps, so we merge every cycle-
+# participating interface header set into this single target.
+#
+# Non-cycle leaf targets (util, config, wire) remain in their own packages.
+# ===========================================================================
+
+cc_library(
+    name = "silkit_internal_headers",
+    hdrs = glob(
+        [
+            "core/internal/**/*.hpp",
+            "core/service/*.hpp",
+            "core/requests/*.hpp",
+            "core/requests/procs/*.hpp",
+            "core/vasio/**/*.hpp",
+            "core/participant/*.hpp",
+            "services/can/*.hpp",
+            "services/ethernet/*.hpp",
+            "services/flexray/*.hpp",
+            "services/lin/*.hpp",
+            "services/logging/*.hpp",
+            "services/orchestration/*.hpp",
+            "services/pubsub/*.hpp",
+            "services/rpc/*.hpp",
+            "services/metrics/*.hpp",
+            "tracing/**/*.hpp",
+            "extensions/**/*.hpp",
+            "extensions/**/*.h",
+            "experimental/netsim/**/*.hpp",
+            "experimental/participant/*.hpp",
+            "experimental/services/**/*.hpp",
+        ],
+        exclude = [
+            # Test mocks -- handled by dedicated test-only targets later
+            "core/mock/**",
+            "core/vasio/mock/**",
+            "core/vasio/io/mock/**",
+        ],
+    ),
+    defines = [
+        "HAVE_FMTLIB",
+        "FMT_HEADER_ONLY",
+    ],
+    includes = [
+        "core/internal",
+        "core/service",
+        "core/requests",
+        "core/requests/procs",
+        "core/vasio",
+        "core/vasio/io",
+        "core/participant",
+        "services/can",
+        "services/ethernet",
+        "services/flexray",
+        "services/lin",
+        "services/logging",
+        "services/orchestration",
+        "services/pubsub",
+        "services/rpc",
+        "services/metrics",
+        "tracing",
+        "tracing/mock",
+        "extensions",
+        "extensions/SilKitExtensionApi",
+        "extensions/SilKitExtensionImpl",
+        "experimental/netsim",
+        "experimental",
+    ],
+    deps = [
+        "//SilKit/include:silkit_interface",
+        "//SilKit/source/config:silkit_config_interface",
+        "//SilKit/source/util:silkit_util_interface",
+        "//SilKit/source/util:silkit_util_uri_interface",
+        "//SilKit/source/util:silkit_util_uuid_interface",
+        "//SilKit/source/util:silkit_util_setthreadname_interface",
+        "//SilKit/source/wire/util:silkit_wire_util_interface",
+        "//SilKit/source/wire/can:silkit_wire_can_interface",
+        "//SilKit/source/wire/ethernet:silkit_wire_ethernet_interface",
+        "//SilKit/source/wire/flexray:silkit_wire_flexray_interface",
+        "//SilKit/source/wire/lin:silkit_wire_lin_interface",
+        "//SilKit/source/wire/pubsub:silkit_wire_pubsub_interface",
+        "//SilKit/source/wire/rpc:silkit_wire_rpc_interface",
+        "//ThirdParty:asio",
+        "//ThirdParty:fmt",
+        ":silkit_versionimpl_interface",
+    ],
+)
+
+# ===========================================================================
+# Root-level interface / implementation targets  (not cycle-related)
+# ===========================================================================
+
+# --- I_SilKit_CreateParticipantImpl ---
+cc_library(
+    name = "silkit_createparticipantimpl_interface",
+    hdrs = ["CreateParticipantImpl.hpp"],
+    includes = ["."],
+)
+
+# --- O_SilKit_CreateParticipantImpl ---
+cc_library(
+    name = "silkit_createparticipantimpl",
+    srcs = ["CreateParticipantImpl.cpp"],
+    deps = [
+        ":silkit_createparticipantimpl_interface",
+        "//SilKit/include:silkit_interface",
+    ],
+    implementation_deps = [
+        ":silkit_internal_headers",
+        ":silkit_core_participant",
+    ],
+    alwayslink = True,
+)
+
+# --- I_SilKit_CreateSilKitRegistryImpl ---
+cc_library(
+    name = "silkit_createregistryimpl_interface",
+    hdrs = [
+        "CreateSilKitRegistryImpl.hpp",
+        "CreateSilKitRegistryWithDashboard.hpp",
+    ],
+    includes = ["."],
+)
+
+# --- O_SilKit_CreateSilKitRegistryImpl ---
+cc_library(
+    name = "silkit_createregistryimpl",
+    srcs = [
+        "CreateSilKitRegistryImpl.cpp",
+        "CreateSilKitRegistryWithDashboard.cpp",
+    ],
+    deps = [
+        ":silkit_createregistryimpl_interface",
+        "//SilKit/include:silkit_interface",
+    ],
+    implementation_deps = [
+        ":silkit_internal_headers",
+        ":silkit_core_vasio",
+    ],
+    alwayslink = True,
+)
+
+# --- I_SilKit_VersionImpl ---
+cc_library(
+    name = "silkit_versionimpl_interface",
+    hdrs = ["SilKitVersionImpl.hpp"],
+    includes = ["."],
+)
+
+# --- O_SilKit_VersionImpl ---
+cc_library(
+    name = "silkit_versionimpl",
+    srcs = ["SilKitVersionImpl.cpp"],
+    deps = [
+        ":silkit_versionimpl_interface",
+        "//SilKit/include:silkit_interface",
+        ":version_macros",
+    ],
+    alwayslink = True,
+)
+
+# --- Version macros (generated from version_macros.hpp.in) ---
+# The version_macros rule reads STABLE_GIT_HASH from the workspace status
+# file (written by bazel/print_workspace_status.sh) and substitutes it
+# into the template alongside the hardcoded version numbers.
+version_macros(
+    name = "gen_version_macros",
+    template = "version_macros.hpp.in",
+    out = "version_macros.hpp",
+)
+
+cc_library(
+    name = "version_macros",
+    hdrs = [":gen_version_macros"],
+    includes = ["."],
+)
+
+# ===========================================================================
+# Core implementation targets
+# ===========================================================================
+
+# --- O_SilKit_Core_Service ---
+cc_library(
+    name = "silkit_core_service",
+    srcs = [
+        "core/service/ServiceDiscovery.cpp",
+        "core/service/ServiceSerdes.cpp",
+        "core/service/SpecificDiscoveryStore.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    implementation_deps = [
+        "//ThirdParty:rapidyaml",
+    ],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Core_RequestReply ---
+cc_library(
+    name = "silkit_core_requestreply",
+    srcs = [
+        "core/requests/RequestReplySerdes.cpp",
+        "core/requests/RequestReplyService.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Core_RequestReply_ParticipantReplies ---
+cc_library(
+    name = "silkit_core_requestreply_participantreplies",
+    srcs = ["core/requests/procs/ParticipantReplies.cpp"],
+    deps = [":silkit_internal_headers"],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Core_VAsio ---
+cc_library(
+    name = "silkit_core_vasio",
+    srcs = glob(
+        [
+            "core/vasio/*.cpp",
+            "core/vasio/io/*.cpp",
+            "core/vasio/io/impl/*.cpp",
+        ],
+        exclude = [
+            "core/vasio/Test_*.cpp",
+            "core/vasio/**/Test_*.cpp",
+        ],
+    ),
+    local_defines = ["ASIO_STANDALONE"],
+    deps = [":silkit_internal_headers"],
+    linkopts = select({
+        "//bazel:is_qnx": [],  # QNX: no -lpthread (pthreads are in libc)
+        "//bazel:is_linux": ["-lpthread"],
+        "//conditions:default": [],
+    }),
+    alwayslink = True,
+)
+
+# --- O_SilKit_Core_Participant ---
+cc_library(
+    name = "silkit_core_participant",
+    srcs = [
+        "core/participant/CreateParticipantInternal.cpp",
+        "core/participant/CreateParticipantT.cpp",
+        "core/participant/Participant.cpp",
+        "core/participant/ValidateAndSanitizeConfig.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    alwayslink = True,
+)
+
+# ===========================================================================
+# Services implementation targets
+# ===========================================================================
+
+# --- O_SilKit_Services_Can ---
+cc_library(
+    name = "silkit_services_can",
+    srcs = [
+        "services/can/CanController.cpp",
+        "services/can/CanDatatypesUtils.cpp",
+        "services/can/CanSerdes.cpp",
+        "services/can/SimBehavior.cpp",
+        "services/can/SimBehaviorDetailed.cpp",
+        "services/can/SimBehaviorTrivial.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Services_Ethernet ---
+cc_library(
+    name = "silkit_services_ethernet",
+    srcs = [
+        "services/ethernet/EthController.cpp",
+        "services/ethernet/EthernetSerdes.cpp",
+        "services/ethernet/SimBehavior.cpp",
+        "services/ethernet/SimBehaviorDetailed.cpp",
+        "services/ethernet/SimBehaviorTrivial.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Services_Flexray ---
+cc_library(
+    name = "silkit_services_flexray",
+    srcs = [
+        "services/flexray/FlexrayController.cpp",
+        "services/flexray/FlexrayDatatypeUtils.cpp",
+        "services/flexray/FlexraySerdes.cpp",
+        "services/flexray/Validation.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Services_Lin ---
+cc_library(
+    name = "silkit_services_lin",
+    srcs = [
+        "services/lin/LinController.cpp",
+        "services/lin/LinSerdes.cpp",
+        "services/lin/SimBehavior.cpp",
+        "services/lin/SimBehaviorDetailed.cpp",
+        "services/lin/SimBehaviorTrivial.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Services_Logging ---
+cc_library(
+    name = "silkit_services_logging",
+    srcs = [
+        "services/logging/LogMsgReceiver.cpp",
+        "services/logging/LogMsgSender.cpp",
+        "services/logging/Logger.cpp",
+        "services/logging/LoggingSerdes.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    implementation_deps = [
+        "//SilKit/source/util:silkit_util_stringhelpers_interface",
+        "//ThirdParty:spdlog",
+    ],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Services_Orchestration ---
+cc_library(
+    name = "silkit_services_orchestration",
+    srcs = [
+        "services/orchestration/LifecycleManagement.cpp",
+        "services/orchestration/LifecycleService.cpp",
+        "services/orchestration/LifecycleStates.cpp",
+        "services/orchestration/SyncDatatypeUtils.cpp",
+        "services/orchestration/SyncSerdes.cpp",
+        "services/orchestration/SystemController.cpp",
+        "services/orchestration/SystemMonitor.cpp",
+        "services/orchestration/SystemStateTracker.cpp",
+        "services/orchestration/TimeConfiguration.cpp",
+        "services/orchestration/TimeProvider.cpp",
+        "services/orchestration/TimeSyncService.cpp",
+        "services/orchestration/WatchDog.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Services_PubSub ---
+cc_library(
+    name = "silkit_services_pubsub",
+    srcs = [
+        "services/pubsub/DataMessageDatatypeUtils.cpp",
+        "services/pubsub/DataPublisher.cpp",
+        "services/pubsub/DataSerdes.cpp",
+        "services/pubsub/DataSubscriber.cpp",
+        "services/pubsub/DataSubscriberInternal.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    implementation_deps = [
+        "//SilKit/source/util:silkit_util_labelmatching_interface",
+    ],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Services_Rpc ---
+cc_library(
+    name = "silkit_services_rpc",
+    srcs = [
+        "services/rpc/RpcClient.cpp",
+        "services/rpc/RpcDatatypeUtils.cpp",
+        "services/rpc/RpcSerdes.cpp",
+        "services/rpc/RpcServer.cpp",
+        "services/rpc/RpcServerInternal.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    implementation_deps = [
+        "//SilKit/source/util:silkit_util_labelmatching_interface",
+    ],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Services_Metrics ---
+cc_library(
+    name = "silkit_services_metrics",
+    srcs = [
+        "services/metrics/CreateMetricsSinksFromParticipantConfiguration.cpp",
+        "services/metrics/MetricsDatatypes.cpp",
+        "services/metrics/MetricsJsonSink.cpp",
+        "services/metrics/MetricsManager.cpp",
+        "services/metrics/MetricsProcessor.cpp",
+        "services/metrics/MetricsReceiver.cpp",
+        "services/metrics/MetricsRemoteSink.cpp",
+        "services/metrics/MetricsSender.cpp",
+        "services/metrics/MetricsSerdes.cpp",
+        "services/metrics/MetricsTimerThread.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    implementation_deps = [
+        "//SilKit/source/util:silkit_util_stringhelpers_interface",
+    ],
+    alwayslink = True,
+)
+
+# ===========================================================================
+# Tracing / Extensions / Experimental implementation targets
+# ===========================================================================
+
+# --- O_SilKit_Tracing ---
+cc_library(
+    name = "silkit_tracing",
+    srcs = [
+        "tracing/PcapReader.cpp",
+        "tracing/PcapReplay.cpp",
+        "tracing/PcapSink.cpp",
+        "tracing/ReplayScheduler.cpp",
+        "tracing/Tracing.cpp",
+    ] + select({
+        "@platforms//os:linux": ["tracing/detail/NamedPipeLinux.cpp"],
+        "@platforms//os:macos": ["tracing/detail/NamedPipeLinux.cpp"],
+        "//conditions:default": ["tracing/detail/NamedPipeLinux.cpp"],
+    }),
+    deps = [":silkit_internal_headers"],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Extensions ---
+cc_library(
+    name = "silkit_extensions",
+    srcs = [
+        "extensions/SilKitExtensionImpl/CreateMdf4Tracing.cpp",
+        "extensions/SilKitExtensions.cpp",
+    ] + select({
+        "@platforms//os:linux": ["extensions/detail/LoadExtension_posix.cpp"],
+        "@platforms//os:macos": ["extensions/detail/LoadExtension_posix.cpp"],
+        "//conditions:default": ["extensions/detail/LoadExtension_posix.cpp"],
+    }),
+    local_defines = select({
+        "//bazel:is_qnx": ["SILKIT_EXTENSION_OS=\\\"qnx\\\""],
+        "//bazel:is_linux": ["SILKIT_EXTENSION_OS=\\\"linux\\\""],
+        "//bazel:is_macos": ["SILKIT_EXTENSION_OS=\\\"macos\\\""],
+        "//bazel:is_windows": ["SILKIT_EXTENSION_OS=\\\"windows\\\""],
+        "//conditions:default": ["SILKIT_EXTENSION_OS=\\\"unknown\\\""],
+    }),
+    deps = [":silkit_internal_headers"],
+    linkopts = select({
+        "//bazel:is_qnx": [],  # QNX: dlopen is in libc, no -ldl needed
+        "//bazel:is_linux": ["-ldl"],
+        "//bazel:is_macos": ["-ldl"],
+        "//conditions:default": [],
+    }),
+    alwayslink = True,
+)
+
+# --- O_SilKit_Experimental_NetworkSimulatorInternals ---
+cc_library(
+    name = "silkit_experimental_netsim",
+    srcs = [
+        "experimental/netsim/NetworkSimulatorInternal.cpp",
+        "experimental/netsim/SimulatedNetworkInternal.cpp",
+        "experimental/netsim/SimulatedNetworkRouter.cpp",
+        "experimental/netsim/eventproducers/CanEventProducer.cpp",
+        "experimental/netsim/eventproducers/EthernetEventProducer.cpp",
+        "experimental/netsim/eventproducers/FlexRayEventProducer.cpp",
+        "experimental/netsim/eventproducers/LinEventProducer.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    alwayslink = True,
+)
+
+# --- O_SilKit_Experimental ---
+cc_library(
+    name = "silkit_experimental",
+    srcs = [
+        "experimental/participant/ParticipantExtensionsImpl.cpp",
+        "experimental/services/lin/LinControllerExtensionsImpl.cpp",
+        "experimental/services/orchestration/TimeSyncServiceExtensionsImpl.cpp",
+    ],
+    deps = [":silkit_internal_headers"],
+    alwayslink = True,
+)
+
+# ===========================================================================
+# Force-include compilation unit
+# ---------------------------------------------------------------------------
+# SilKitForceIncludes.cpp calls inline C++ API wrappers (declared with
+# DETAIL_SILKIT_CPP_API = inline) so the compiler emits definitions that the
+# version-script (silkit.map) can then export from libSilKit.so.
+# Without this, only the SilKit_* C API symbols appear in the dynamic table.
+# ===========================================================================
+
+cc_library(
+    name = "silkit_force_includes",
+    srcs = ["SilKitForceIncludes.cpp"],
+    deps = [
+        ":silkit_internal_headers",
+        "//SilKit/include:silkit_interface",
+    ],
+    alwayslink = True,
+)
+
+# ===========================================================================
+# S_SilKitImpl  -- static aggregate of all implementation libraries
+# ---------------------------------------------------------------------------
+# Mirrors the CMake S_SilKitImpl STATIC target that links all O_* objects.
+# Used directly by sil-kit-registry (static linking).
+# ===========================================================================
+
+_SILKIT_IMPL_DEPS = [
+    # core
+    ":silkit_core_service",
+    ":silkit_core_requestreply",
+    ":silkit_core_requestreply_participantreplies",
+    ":silkit_core_vasio",
+    ":silkit_core_participant",
+    # services
+    ":silkit_services_can",
+    ":silkit_services_ethernet",
+    ":silkit_services_flexray",
+    ":silkit_services_lin",
+    ":silkit_services_logging",
+    ":silkit_services_orchestration",
+    ":silkit_services_pubsub",
+    ":silkit_services_rpc",
+    ":silkit_services_metrics",
+    # tracing / extensions / experimental
+    ":silkit_tracing",
+    ":silkit_extensions",
+    ":silkit_experimental_netsim",
+    ":silkit_experimental",
+    # root-level impl
+    ":silkit_createparticipantimpl",
+    ":silkit_createregistryimpl",
+    ":silkit_versionimpl",
+    # util impl
+    "//SilKit/source/util:silkit_util",
+    "//SilKit/source/util:silkit_util_filehelpers",
+    "//SilKit/source/util:silkit_util_stringhelpers",
+    "//SilKit/source/util:silkit_util_setthreadname",
+    "//SilKit/source/util:silkit_util_signalhandler",
+    "//SilKit/source/util:silkit_util_uuid",
+    "//SilKit/source/util:silkit_util_uri",
+    "//SilKit/source/util:silkit_util_labelmatching",
+    # config impl
+    "//SilKit/source/config:silkit_config",
+    # capi
+    "//SilKit/source/capi:silkit_capi",
+    # dashboard (conditional on //bazel:dashboard_enabled)
+    "//SilKit/source/dashboard:silkit_dashboard",
+    # force-include compilation unit for C++ API exports
+    ":silkit_force_includes",
+]
+
+cc_library(
+    name = "S_SilKitImpl",
+    deps = [":silkit_internal_headers"] + _SILKIT_IMPL_DEPS,
+    alwayslink = True,
+)
+
+# ===========================================================================
+# SilKit shared library
+# ---------------------------------------------------------------------------
+# Mirrors the CMake SilKit SHARED target.
+# Uses a version script on Linux to control symbol visibility, and excludes
+# bundled spdlog symbols from the export table.
+# ===========================================================================
+
+cc_shared_library(
+    name = "SilKit",
+    deps = [":S_SilKitImpl"],
+    additional_linker_inputs = select({
+        "//bazel:is_linux": ["silkit.map"],
+        "//bazel:is_qnx": ["silkit.map"],
+        "//conditions:default": [],
+    }),
+    user_link_flags = select({
+        "//bazel:is_qnx": [
+            "-Wl,--version-script=$(location silkit.map)",
+            "-Wl,--exclude-libs=libspdlog.a",
+            "-Wl,-soname,libSilKit.so",
+            # No -lpthread on QNX (pthreads are in libc)
+        ],
+        "//bazel:is_linux": [
+            "-Wl,--version-script=$(location silkit.map)",
+            "-Wl,--exclude-libs=libspdlog.a",
+            "-Wl,-soname,libSilKit.so",
+            "-lpthread",
+        ],
+        "//conditions:default": [],
+    }),
+)
+
+# ===========================================================================
+# SilKit dynamic import target
+# ---------------------------------------------------------------------------
+# Wraps the cc_shared_library output so that cc_binary targets can link
+# against libSilKit.so dynamically (matching CMake behaviour for
+# sil-kit-system-controller, sil-kit-monitor, and Demos).
+# ===========================================================================
+
+cc_import(
+    name = "SilKit_dynamic",
+    shared_library = ":SilKit",
+    deps = ["//SilKit/include:silkit_interface"],
+)
+
+# ===========================================================================
+# Test support libraries (mocks)
+# ===========================================================================
+
+# --- I_SilKit_Core_Mock_Participant (header-only mock) ---
+cc_library(
+    name = "silkit_mock_participant",
+    hdrs = [
+        "core/mock/participant/MockParticipant.hpp",
+        "core/mock/participant/MockTimeProvider.hpp",
+    ],
+    includes = ["core/mock/participant"],
+    deps = [
+        ":silkit_internal_headers",
+        "//ThirdParty:gtest",
+    ],
+    testonly = True,
+)
+
+# --- I/O_SilKit_Core_Mock_NullConnection ---
+cc_library(
+    name = "silkit_mock_nullconnection_interface",
+    hdrs = ["core/mock/nullconnection/NullConnectionParticipant.hpp"],
+    includes = ["core/mock/nullconnection"],
+    deps = [":silkit_internal_headers"],
+    testonly = True,
+)
+
+cc_library(
+    name = "silkit_mock_nullconnection",
+    srcs = ["core/mock/nullconnection/NullConnectionParticipant.cpp"],
+    deps = [
+        ":silkit_mock_nullconnection_interface",
+        ":silkit_internal_headers",
+    ],
+    testonly = True,
+    alwayslink = True,
+)
+
+# --- I_SilKit_Core_VAsio_Testing (vasio mock headers) ---
+cc_library(
+    name = "silkit_vasio_testing",
+    hdrs = glob([
+        "core/vasio/mock/*.hpp",
+        "core/vasio/io/mock/*.hpp",
+    ]),
+    includes = [
+        "core/vasio/mock",
+        "core/vasio/io/mock",
+    ],
+    deps = [
+        ":silkit_internal_headers",
+        "//ThirdParty:gtest",
+    ],
+    testonly = True,
+)
+
+# --- Tracing mock (MockTraceSink) ---
+cc_library(
+    name = "silkit_tracing_mock",
+    hdrs = ["tracing/mock/MockTraceSink.hpp"],
+    includes = ["tracing/mock"],
+    deps = [
+        ":silkit_internal_headers",
+        "//ThirdParty:gtest",
+    ],
+    testonly = True,
+)
+
+# Common test deps list used by most tests
+_TEST_COMMON_DEPS = [
+    ":S_SilKitImpl",
+    ":silkit_internal_headers",
+    "//SilKit/cmake/SilKitTest:silkit_test_main",
+    "//ThirdParty:gtest",
+]
+
+# ===========================================================================
+# Unit tests -- serdes / internal (no mocks needed)
+# ===========================================================================
+
+cc_test(
+    name = "Test_MessageBuffer",
+    srcs = ["core/internal/Test_MessageBuffer.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_InternalSerdes",
+    srcs = ["core/internal/Test_InternalSerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_CanSerdes",
+    srcs = ["services/can/Test_CanSerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_CanStringUtils",
+    srcs = ["services/can/Test_CanStringUtils.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_EthernetSerdes",
+    srcs = ["services/ethernet/Test_EthernetSerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_FlexraySerdes",
+    srcs = ["services/flexray/Test_FlexraySerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_LinSerdes",
+    srcs = ["services/lin/Test_LinSerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_LoggingSerdes",
+    srcs = ["services/logging/Test_LoggingSerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_SyncSerdes",
+    srcs = ["services/orchestration/Test_SyncSerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_DataSerdes",
+    srcs = ["services/pubsub/Test_DataSerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_RpcSerdes",
+    srcs = ["services/rpc/Test_RpcSerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_MetricsSerdes",
+    srcs = ["services/metrics/Test_MetricsSerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_ServiceSerdes",
+    srcs = ["core/service/Test_ServiceSerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_ServiceDiscovery",
+    srcs = ["core/service/Test_ServiceDiscovery.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_SpecificDiscoveryStore",
+    srcs = ["core/service/Test_SpecificDiscoveryStore.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_RequestReplyService",
+    srcs = ["core/requests/Test_RequestReplyService.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+# ===========================================================================
+# Unit tests -- controller tests (need mocks)
+# ===========================================================================
+
+cc_test(
+    name = "Test_CanControllerConfig",
+    srcs = ["services/can/Test_CanControllerConfig.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+        ":silkit_mock_nullconnection",
+    ],
+)
+
+cc_test(
+    name = "Test_CanControllerTrivialSim",
+    srcs = ["services/can/Test_CanControllerTrivialSim.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_CanControllerDetailedSim",
+    srcs = ["services/can/Test_CanControllerDetailedSim.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_EthControllerConfig",
+    srcs = ["services/ethernet/Test_EthControllerConfig.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+        ":silkit_mock_nullconnection",
+    ],
+)
+
+cc_test(
+    name = "Test_EthControllerTrivialSim",
+    srcs = ["services/ethernet/Test_EthControllerTrivialSim.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_EthControllerDetailedSim",
+    srcs = ["services/ethernet/Test_EthControllerDetailedSim.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_FlexrayController",
+    srcs = ["services/flexray/Test_FlexrayController.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_FlexrayControllerConfig",
+    srcs = ["services/flexray/Test_FlexrayControllerConfig.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+        ":silkit_mock_nullconnection",
+    ],
+)
+
+cc_test(
+    name = "Test_Validation_Flexray",
+    srcs = ["services/flexray/Test_Validation.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_LinControllerConfig",
+    srcs = ["services/lin/Test_LinControllerConfig.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+        ":silkit_mock_nullconnection",
+    ],
+)
+
+cc_test(
+    name = "Test_LinControllerTrivialSim",
+    srcs = ["services/lin/Test_LinControllerTrivialSim.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_LinControllerDetailedSim",
+    srcs = ["services/lin/Test_LinControllerDetailedSim.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_Logger",
+    srcs = ["services/logging/Test_Logger.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_LifecycleService",
+    srcs = ["services/orchestration/Test_LifecycleService.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_SystemMonitor",
+    srcs = ["services/orchestration/Test_SystemMonitor.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_SystemController",
+    srcs = ["services/orchestration/Test_SystemController.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_TimeSyncService",
+    srcs = ["services/orchestration/Test_TimeSyncService.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_TimeProvider",
+    srcs = ["services/orchestration/Test_TimeProvider.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_WatchDog",
+    srcs = ["services/orchestration/Test_WatchDog.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_DataPublisher",
+    srcs = ["services/pubsub/Test_DataPublisher.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_DataSubscriber",
+    srcs = ["services/pubsub/Test_DataSubscriber.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_DataSubscriberInternal",
+    srcs = ["services/pubsub/Test_DataSubscriberInternal.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_PubSubMatching",
+    srcs = ["services/pubsub/Test_PubSubMatching.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_RpcClient",
+    srcs = ["services/rpc/Test_RpcClient.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_RpcServer",
+    srcs = ["services/rpc/Test_RpcServer.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_tracing_mock",
+    ],
+)
+
+cc_test(
+    name = "Test_RpcMatching",
+    srcs = ["services/rpc/Test_RpcMatching.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_MetricsManager",
+    srcs = ["services/metrics/Test_MetricsManager.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_MetricsProcessor",
+    srcs = ["services/metrics/Test_MetricsProcessor.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_MetricsRemoteSink",
+    srcs = ["services/metrics/Test_MetricsRemoteSink.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+cc_test(
+    name = "Test_MetricsJsonSink",
+    srcs = ["services/metrics/Test_MetricsJsonSink.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+# ===========================================================================
+# Unit tests -- tracing
+# ===========================================================================
+
+cc_test(
+    name = "Test_Pcap",
+    srcs = ["tracing/Test_Pcap.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+# Test_Replay: skipped -- commented out in CMake (#XXX not viable)
+
+cc_test(
+    name = "Test_EthernetReplay",
+    srcs = ["tracing/Test_EthernetReplay.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_mock_participant"],
+)
+
+# ===========================================================================
+# Unit tests -- experimental
+# ===========================================================================
+
+cc_test(
+    name = "Test_ParticipantExtensionsImpl",
+    srcs = ["experimental/participant/Test_ParticipantExtensionsImpl.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_mock_nullconnection",
+    ],
+)
+
+# ===========================================================================
+# Unit tests -- core/vasio
+# ===========================================================================
+
+cc_test(
+    name = "Test_VAsioConnection",
+    srcs = ["core/vasio/Test_VAsioConnection.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_participant",
+        ":silkit_vasio_testing",
+    ],
+)
+
+cc_test(
+    name = "Test_VAsioRegistry",
+    srcs = ["core/vasio/Test_VAsioRegistry.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_VAsioSerdes",
+    srcs = ["core/vasio/Test_VAsioSerdes.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_SerializedMessage",
+    srcs = ["core/vasio/Test_SerializedMessage.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_TransformAcceptorUris",
+    srcs = ["core/vasio/Test_TransformAcceptorUris.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_VAsioCapabilities",
+    srcs = ["core/vasio/Test_VAsioCapabilities.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_RingBuffer",
+    srcs = ["core/vasio/Test_RingBuffer.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_IoContext",
+    srcs = ["core/vasio/io/Test_IoContext.cpp"],
+    defines = ["UNIT_TEST"],
+    # The source includes "core/vasio/io/MakeAsioIoContext.hpp" using a path
+    # relative to SilKit/source/.  Add -iquote so the compiler can resolve it.
+    copts = ["-iquote", "SilKit/source"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_vasio_testing"],
+)
+
+cc_test(
+    name = "Test_AsioIoContext",
+    srcs = ["core/vasio/io/Test_AsioIoContext.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_TracingMacrosDetails",
+    srcs = ["core/vasio/io/util/Test_TracingMacrosDetails.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_ConnectPeer",
+    srcs = ["core/vasio/Test_ConnectPeer.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_vasio_testing"],
+)
+
+cc_test(
+    name = "Test_ConnectKnownParticipants",
+    srcs = ["core/vasio/Test_ConnectKnownParticipants.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [":silkit_vasio_testing"],
+)
+
+# Test_ParticipantVersion: skipped -- requires S_ITests_STH (SimTestHarness)
+
+# ===========================================================================
+# Unit tests -- core/participant
+# ===========================================================================
+
+cc_test(
+    name = "Test_Participant",
+    srcs = ["core/participant/Test_Participant.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS + [
+        ":silkit_mock_nullconnection",
+    ],
+)
+
+cc_test(
+    name = "Test_ValidateAndSanitizeConfig",
+    srcs = ["core/participant/Test_ValidateAndSanitizeConfig.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    deps = _TEST_COMMON_DEPS,
+)
+
+cc_test(
+    name = "Test_ParticipantVersion",
+    srcs = ["core/vasio/Test_ParticipantVersion.cpp"],
+    defines = ["UNIT_TEST"],
+    linkstatic = True,
+    size = "medium",
+    deps = _TEST_COMMON_DEPS + [
+        "//SilKit/IntegrationTests/SimTestHarness:silkit_sim_test_harness",
+    ],
+)
