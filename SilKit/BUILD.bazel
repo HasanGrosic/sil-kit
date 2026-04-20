@@ -3,3 +3,10 @@
 # SPDX-License-Identifier: MIT
 
 # SilKit parent package.
+
+# Alias for the main SilKit shared library.
+alias(
+    name = "SilKit",
+    actual = "//SilKit/source:SilKit_dynamic",
+    visibility = ["//visibility:public"],
+)

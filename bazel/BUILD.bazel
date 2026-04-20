@@ -38,16 +38,14 @@ config_setting(
     constraint_values = ["@platforms//os:macos"],
 )
 
-# is_qnx intentionally includes @platforms//os:linux so that it is a strict
-# superset of is_linux's constraints.  This lets Bazel's select() specialisation
-# prefer is_qnx over is_linux when building for QNX targets (whose platforms
-# carry both @platforms//os:linux and @qnx_cc_toolchain//:qnx).
+# is_qnx matches when --define qnx=true is set AND the platform is Linux-based.
+# Including @platforms//os:linux makes this a strict superset of is_linux,
+# so Bazel's select() specialisation prefers is_qnx over is_linux when both
+# match.  The define is set by the parent workspace's .bazelrc.
 config_setting(
     name = "is_qnx",
-    constraint_values = [
-        "@platforms//os:linux",
-        "@qnx_cc_toolchain//:qnx",
-    ],
+    define_values = {"qnx": "true"},
+    constraint_values = ["@platforms//os:linux"],
 )
 
 # ---------------------------------------------------------------------------
